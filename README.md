@@ -1,11 +1,7 @@
 # SQS Workbench
 
-A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/) queues — on local emulators
+A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/) queues - on local emulators
 ([floci](https://hub.docker.com/r/floci/floci), LocalStack, ElasticMQ) or real AWS.
-
-- **Backend**: ASP.NET Core Web API (`.NET 10`) using the AWS SDK for .NET (`AWSSDK.SQS` 4.x).
-- **Frontend**: React + TypeScript + Vite, built into `Api/wwwroot` and served as static files by the API — **no node server needed** in production.
-- **Publishing**: multi-stage `Dockerfile` + GitHub Actions workflow that pushes to Docker Hub.
 
 ![stack](https://img.shields.io/badge/.NET-10-512BD4) ![stack](https://img.shields.io/badge/React-19-61DAFB) ![stack](https://img.shields.io/badge/AWS%20SDK%20for%20.NET-v4-FF9900)
 
