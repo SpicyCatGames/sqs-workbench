@@ -26,6 +26,15 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
 - **Settings** — the gear icon opens connection settings (AWS endpoint URL, region, access key, secret access key)
   with a **test connection** button. Settings are persisted server-side and take effect immediately.
 
+## Quick start (from dockerhub)
+
+```bash
+docker run -d -p 5072:8080  spicycatgames/sqs-workbench:latest
+```
+Open <http://localhost:5072>.
+In the top right corner, from the settings button, you can set the credentials.
+If you're on windows, and emulator is running on another container, endpoint should be `host.docker.internal` instead of `localhost`.
+
 ## Quick start (with the floci emulator)
 
 ```bash
@@ -88,35 +97,6 @@ For local emulators any credentials work (e.g. `test` / `test`); for AWS use a r
 | GET / PUT | `/api/queues/tags?url=` | List / set tags |
 | POST | `/api/queues/untag` | Remove tags |
 | GET | `/api/health` | Liveness probe |
-
-## Publish to Docker Hub
-
-The repo includes a [GitHub Actions workflow](.github/workflows/docker-publish.yml) that builds the image and pushes it
-to Docker Hub on every push to `main` and on `v*` tags.
-
-1. Add two repository secrets (Settings → Secrets and variables → Actions):
-   - `DOCKERHUB_USERNAME` — your Docker Hub username
-   - `DOCKERHUB_TOKEN` — an access token from Docker Hub (Account Settings → Security → New Access Token)
-2. Push to `main` (or tag a release `v1.0.0`) — the workflow tags the image as `latest`, the branch name, `vX.Y.Z` and the commit SHA.
-
-### Build the image manually
-
-```bash
-docker build -t SpicyCatGames/sqs-workbench:latest .
-docker push SpicyCatGames/sqs-workbench:latest
-```
-
-### Run the published image
-
-```bash
-# with an existing SQS emulator reachable at http://localhost:4566
-docker run -p 5072:8080 \
-  -e AWS_ENDPOINT_URL=http://host.docker.internal:4566 \
-  -e AWS_DEFAULT_REGION=us-east-1 \
-  -e AWS_ACCESS_KEY_ID=test \
-  -e AWS_SECRET_ACCESS_KEY=test \
-  SpicyCatGames/sqs-workbench:latest
-```
 
 ## Project layout
 
