@@ -1,4 +1,4 @@
-# Local SQS Admin
+# SQS Workbench
 
 A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/) queues — on local emulators
 ([floci](https://hub.docker.com/r/floci/floci), LocalStack, ElasticMQ) or real AWS.
@@ -29,7 +29,7 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
 ## Quick start (with the floci emulator)
 
 ```bash
-# one-command stack: floci (SQS) + the admin app on http://localhost:5072
+# one-command stack: floci (SQS) + the sqs workbench app on http://localhost:5072
 docker compose up --build
 ```
 
@@ -125,6 +125,6 @@ Api/                 ASP.NET Core Web API (endpoints, SQS service, settings stor
 Api/wwwroot/         Built SPA (static files served by the API)
 frontend/            React + TypeScript + Vite source
 Dockerfile           Multi-stage build (Node → .NET publish → runtime)
-docker-compose.yml   floci + admin app for local testing
+docker-compose.yml   floci + sqs workbench app for local testing
 .github/workflows/   Docker Hub publish pipeline
 ```

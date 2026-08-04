@@ -5,7 +5,7 @@ services:
     ports:
       - "4566:4566"
 
-  # The Local SQS Admin web app (serves the SPA at http://localhost:5072)
+  # The SQS Workbench web app (serves the SPA at http://localhost:5072)
   api:
     build: .
     ports:

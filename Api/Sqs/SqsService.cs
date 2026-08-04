@@ -3,7 +3,7 @@ using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 
-namespace LocalSqsAdmin.Api.Sqs;
+namespace SqsWorkbench.Api.Sqs;
 
 /// <summary>
 /// Thin wrapper around the AWS SQS SDK client. The client is recreated lazily

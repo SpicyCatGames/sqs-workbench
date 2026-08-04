@@ -1,0 +1,6 @@
+@SqsWorkbench.Api_HostAddress = http://localhost:5072
+
+GET {{SqsWorkbench.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -32,7 +32,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     });
   } catch {
     throw new ApiRequestError(
-      'Cannot reach the Local SQS Admin API. Is the .NET API running?',
+      'Cannot reach the SQS Workbench API. Is the .NET API running?',
       'NetworkError',
       0,
     );

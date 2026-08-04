@@ -14,7 +14,7 @@ WORKDIR /src
 COPY Api/ ./Api/
 # Ship the freshly built SPA as static files served by the API (no node server)
 COPY --from=frontend-build /src/frontend/dist ./Api/wwwroot
-RUN dotnet publish Api/LocalSqsAdmin.Api.csproj -c Release -o /app/publish
+RUN dotnet publish Api/SqsWorkbench.Api.csproj -c Release -o /app/publish
 
 # ---------- Stage 3: runtime ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
@@ -23,4 +23,4 @@ COPY --from=api-build /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "LocalSqsAdmin.Api.dll"]
+ENTRYPOINT ["dotnet", "SqsWorkbench.Api.dll"]

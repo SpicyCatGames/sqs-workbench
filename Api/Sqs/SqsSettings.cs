@@ -1,9 +1,9 @@
 using System.Text.Json;
 
-namespace LocalSqsAdmin.Api.Sqs;
+namespace SqsWorkbench.Api.Sqs;
 
 /// <summary>
-/// Connection settings for the SQS endpoint the admin UI manages.
+/// Connection settings for the SQS endpoint the sqs workbench UI manages.
 /// Defaults come from the SqsSettings section of appsettings.json and can be
 /// overridden at runtime through the UI (persisted to App_Data/settings.json).
 /// </summary>

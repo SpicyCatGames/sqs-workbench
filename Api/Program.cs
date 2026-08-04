@@ -1,5 +1,5 @@
 using Amazon.SQS;
-using LocalSqsAdmin.Api.Sqs;
+using SqsWorkbench.Api.Sqs;
 
 var builder = WebApplication.CreateBuilder(args);
 

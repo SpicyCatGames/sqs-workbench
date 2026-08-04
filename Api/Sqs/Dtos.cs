@@ -1,4 +1,4 @@
-namespace LocalSqsAdmin.Api.Sqs;
+namespace SqsWorkbench.Api.Sqs;
 
 /// <summary>A single SQS queue as shown in the list view.</summary>
 public class QueueItem
