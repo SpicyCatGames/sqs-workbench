@@ -11,7 +11,7 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
 
 ## Screenshots
 
-| [<img src="screenshots/screenshot_queues.png" alt="Queues page" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_queues.png) | [<img src="screenshots/screenshot_createqueue.png" alt="Create queue dialog" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_createqueue.png) | [<img src="screenshots/screenshot_queuedetails.png" alt="Queue details console" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_queuedetails.png) |
+| <a href="screenshots/screenshot_queues.png"><img src="screenshots/screenshot_queues.png" alt="Queues page" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> | <a href="screenshots/screenshot_createqueue.png"><img src="screenshots/screenshot_createqueue.png" alt="Create queue dialog" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> | <a href="screenshots/screenshot_queuedetails.png"><img src="screenshots/screenshot_queuedetails.png" alt="Queue details console" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> |
 
 ## Features
 
