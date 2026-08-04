@@ -9,6 +9,10 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
 
 ![stack](https://img.shields.io/badge/.NET-10-512BD4) ![stack](https://img.shields.io/badge/React-19-61DAFB) ![stack](https://img.shields.io/badge/AWS%20SDK%20for%20.NET-v4-FF9900)
 
+## Screenshots
+
+| [<img src="screenshots/screenshot_queues.png" alt="Queues page" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_queues.png) | [<img src="screenshots/screenshot_createqueue.png" alt="Create queue dialog" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_createqueue.png) | [<img src="screenshots/screenshot_queuedetails.png" alt="Queue details console" width="240" height="240" style="object-fit: cover; border-radius: 8px;">](screenshots/screenshot_queuedetails.png) |
+
 ## Features
 
 - **Homepage** — lists every queue on the configured endpoint with live message counts, type (Standard/FIFO),
