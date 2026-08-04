@@ -102,8 +102,8 @@ to Docker Hub on every push to `main` and on `v*` tags.
 ### Build the image manually
 
 ```bash
-docker build -t <your-user>/sqs-workbench:latest .
-docker push <your-user>/sqs-workbench:latest
+docker build -t SpicyCatGames/sqs-workbench:latest .
+docker push SpicyCatGames/sqs-workbench:latest
 ```
 
 ### Run the published image
@@ -115,7 +115,7 @@ docker run -p 5072:8080 \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -e AWS_ACCESS_KEY_ID=test \
   -e AWS_SECRET_ACCESS_KEY=test \
-  <your-user>/sqs-workbench:latest
+  SpicyCatGames/sqs-workbench:latest
 ```
 
 ## Project layout
