@@ -1,0 +1,19 @@
+services:
+  # Local SQS emulator (floci is a LocalStack-compatible drop-in)
+  sqs:
+    image: floci/floci:latest
+    ports:
+      - "4566:4566"
+
+  # The Local SQS Admin web app (serves the SPA at http://localhost:5072)
+  api:
+    build: .
+    ports:
+      - "5072:8080"
+    environment:
+      AWS_ENDPOINT_URL: http://sqs:4566
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    depends_on:
+      - sqs

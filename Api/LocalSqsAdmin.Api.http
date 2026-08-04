@@ -1,0 +1,6 @@
+@LocalSqsAdmin.Api_HostAddress = http://localhost:5072
+
+GET {{LocalSqsAdmin.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
