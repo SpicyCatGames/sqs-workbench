@@ -10,6 +10,7 @@ import {
   Mail,
   MessageSquareText,
   PackageSearch,
+  Redo2,
   ShieldCheck,
   Tags as TagsIcon,
   Trash2,
@@ -144,6 +145,10 @@ export function QueueDetailPage() {
           <Button variant="secondary" onClick={() => setReceiveOpen(true)}>
             <PackageSearch size={15} />
             Receive messages
+          </Button>
+          <Button variant="secondary" onClick={() => navigate(`/queues/${encodeURIComponent(queue.name)}/redrive`)} title="Move messages from this queue to another queue (e.g. back to its source queue)">
+            <Redo2 size={15} />
+            Start redrive
           </Button>
           <IconButton title="Purge queue" onClick={() => setPurgeOpen(true)}>
             <Eraser size={16} />

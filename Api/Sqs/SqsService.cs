@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.SQS;
@@ -373,6 +375,483 @@ public class SqsService
             QueueUrl = dto.QueueUrl,
             ReceiptHandle = dto.ReceiptHandle
         }, ct);
+    }
+
+    // ---------------------------------------------------------------- redrive
+
+    private readonly ConcurrentDictionary<Guid, RedriveJob> _redriveJobs = new();
+
+    /// <summary>
+    /// A tracked redrive operation. Either wraps a managed AWS message move task
+    /// (Mode = "managed") or a locally executed receive/send/delete loop
+    /// (Mode = "manual") used when the endpoint does not implement the managed API.
+    /// </summary>
+    public sealed class RedriveJob
+    {
+        public Guid Id { get; init; } = Guid.NewGuid();
+        public string Mode { get; set; } = "";
+        public string SourceUrl { get; init; } = "";
+        public string SourceArn { get; init; } = "";
+        public string DestinationUrl { get; init; } = "";
+        public string DestinationArn { get; init; } = "";
+        public int MaxMessagesPerSecond { get; init; }
+        public string? TaskHandle { get; set; }
+        public CancellationTokenSource? Cts { get; set; }
+        public DateTime StartedAt { get; init; } = DateTime.UtcNow;
+        public DateTime? FinishedAt { get; private set; }
+
+        public long Total { get; set; }
+        public long Scanned { get; set; }
+        public long Moved { get; set; }
+        public long Failed { get; set; }
+        public string Status { get; private set; } = "running";
+        public string? Error { get; private set; }
+        public int ConsecutiveFailures { get; set; }
+
+        public void Finish(string status, string? error = null)
+        {
+            lock (this)
+            {
+                if (Status != "running") return;
+                Status = status;
+                Error = error;
+                FinishedAt = DateTime.UtcNow;
+            }
+        }
+
+        public void Fail(string error) => Finish("failed", error);
+
+        /// <summary>Apply a status refresh coming from the managed message move task API.</summary>
+        public void ApplyManagedUpdate(string status, string? error)
+        {
+            lock (this)
+            {
+                if (Status != "running") return; // keep the terminal state once reached
+                Status = status;
+                Error = error;
+                if (status != "running") FinishedAt = DateTime.UtcNow;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find queues that use the given queue as their dead-letter queue. Tries the
+    /// managed ListDeadLetterSourceQueues API first and falls back to scanning
+    /// every queue's RedrivePolicy for emulators that do not implement it.
+    /// </summary>
+    public async Task<List<QueueItem>> ListRedriveSourceQueuesAsync(string queueUrl, CancellationToken ct)
+    {
+        var client = await GetClientAsync(ct);
+        var urls = new List<string>();
+
+        try
+        {
+            var resp = await client.ListDeadLetterSourceQueuesAsync(new ListDeadLetterSourceQueuesRequest
+            {
+                QueueUrl = queueUrl
+            }, ct);
+            urls.AddRange(resp.QueueUrls ?? new List<string>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "ListDeadLetterSourceQueues unavailable ({Message}); scanning RedrivePolicies instead", ex.Message);
+        }
+
+        if (urls.Count == 0)
+        {
+            // Fallback: scan every queue's RedrivePolicy for a target matching this queue.
+            var dlqArn = await ResolveArnAsync(client, queueUrl, ct);
+            if (!string.IsNullOrEmpty(dlqArn))
+            {
+                var all = await ListQueuesAsync(null, ct);
+                urls = all
+                    .Where(q => ParseDeadLetterTargetArn(q.Attributes.GetValueOrDefault("RedrivePolicy")) == dlqArn)
+                    .Select(q => q.Url)
+                    .ToList();
+            }
+        }
+
+        var result = new List<QueueItem>();
+        foreach (var url in urls)
+        {
+            try
+            {
+                var attrs = await GetQueueAttributesAsync(client, url, ct);
+                result.Add(new QueueItem
+                {
+                    Name = GetNameFromUrl(url),
+                    Url = url,
+                    Arn = attrs.GetValueOrDefault("QueueArn"),
+                    Attributes = attrs
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load source queue {Url}", url);
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<string> ResolveArnAsync(AmazonSQSClient client, string queueUrl, CancellationToken ct)
+    {
+        var attrs = await GetQueueAttributesAsync(client, queueUrl, ct);
+        return attrs.GetValueOrDefault("QueueArn") ?? "";
+    }
+
+    private static string? ParseDeadLetterTargetArn(string? policy)
+    {
+        if (string.IsNullOrWhiteSpace(policy)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(policy);
+            return doc.RootElement.TryGetProperty("deadLetterTargetArn", out var p)
+                ? p.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Start moving every message from the source queue to the destination queue.
+    /// Prefers the managed message move task API and transparently falls back to a
+    /// local receive/send/delete loop when the endpoint does not support it.
+    /// </summary>
+    public async Task<RedriveJobDto> StartRedriveAsync(StartRedriveRequestDto dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.SourceQueueUrl))
+        {
+            throw new ArgumentException("Source queue URL is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.DestinationQueueUrl))
+        {
+            throw new ArgumentException("A destination queue is required.");
+        }
+
+        if (string.Equals(dto.SourceQueueUrl, dto.DestinationQueueUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Source and destination queues must be different.");
+        }
+
+        if (dto.MaxMessagesPerSecond is < 0 or > 500)
+        {
+            throw new ArgumentException("Max messages per second must be between 0 (system optimized) and 500.");
+        }
+
+        PruneFinishedJobs();
+
+        var client = await GetClientAsync(ct);
+        var sourceArn = await ResolveArnAsync(client, dto.SourceQueueUrl, ct);
+        var destinationArn = await ResolveArnAsync(client, dto.DestinationQueueUrl, ct);
+
+        var job = new RedriveJob
+        {
+            SourceUrl = dto.SourceQueueUrl,
+            SourceArn = sourceArn,
+            DestinationUrl = dto.DestinationQueueUrl,
+            DestinationArn = destinationArn,
+            MaxMessagesPerSecond = dto.MaxMessagesPerSecond,
+            Total = long.TryParse((await GetQueueAttributesAsync(client, dto.SourceQueueUrl, ct))
+                .GetValueOrDefault("ApproximateNumberOfMessages"), out var n) ? n : 0
+        };
+
+        // Preferred path: the managed message move task API (real AWS + emulators that implement it).
+        if (!string.IsNullOrEmpty(sourceArn) && !string.IsNullOrEmpty(destinationArn))
+        {
+            try
+            {
+                var req = new StartMessageMoveTaskRequest
+                {
+                    SourceArn = sourceArn,
+                    DestinationArn = destinationArn
+                };
+                if (dto.MaxMessagesPerSecond > 0)
+                {
+                    req.MaxNumberOfMessagesPerSecond = dto.MaxMessagesPerSecond;
+                }
+
+                var resp = await client.StartMessageMoveTaskAsync(req, ct);
+                job.Mode = "managed";
+                job.TaskHandle = resp.TaskHandle;
+                _redriveJobs[job.Id] = job;
+                _logger.LogInformation("Started managed redrive task {TaskHandle} ({Source} -> {Destination})",
+                    resp.TaskHandle, sourceArn, destinationArn);
+                return new RedriveJobDto { JobId = job.Id, Mode = job.Mode, Total = job.Total };
+            }
+            catch (Exception ex) when (ex is AmazonSQSException or AmazonServiceException or HttpRequestException)
+            {
+                _logger.LogInformation(ex,
+                    "Managed message move task unavailable ({Message}); falling back to manual redrive", ex.Message);
+            }
+        }
+
+        // Fallback path: move messages locally with receive/send/delete + rate limiting.
+        job.Mode = "manual";
+        job.Cts = new CancellationTokenSource();
+        _redriveJobs[job.Id] = job;
+        _ = Task.Run(() => RunManualRedriveAsync(job, job.Cts.Token), CancellationToken.None);
+        _logger.LogInformation("Started manual redrive job {JobId} ({Source} -> {Destination})",
+            job.Id, dto.SourceQueueUrl, dto.DestinationQueueUrl);
+        return new RedriveJobDto { JobId = job.Id, Mode = job.Mode, Total = job.Total };
+    }
+
+    public async Task<RedriveStatusDto> GetRedriveStatusAsync(Guid jobId, CancellationToken ct)
+    {
+        if (!_redriveJobs.TryGetValue(jobId, out var job))
+        {
+            throw new ArgumentException("Unknown redrive job.");
+        }
+
+        if (job.Mode == "manual")
+        {
+            return new RedriveStatusDto
+            {
+                JobId = job.Id,
+                Mode = job.Mode,
+                Status = job.Status,
+                Moved = job.Moved,
+                Total = job.Total,
+                Failed = job.Failed,
+                Error = job.Error,
+                StartedAt = job.StartedAt,
+                FinishedAt = job.FinishedAt
+            };
+        }
+
+        // Refresh managed task progress from the endpoint.
+        try
+        {
+            var client = await GetClientAsync(ct);
+            var resp = await client.ListMessageMoveTasksAsync(new ListMessageMoveTasksRequest
+            {
+                SourceArn = job.SourceArn,
+                MaxResults = 20
+            }, ct);
+            var task = resp.Results?.FirstOrDefault(t => t.TaskHandle == job.TaskHandle);
+            if (task is not null)
+            {
+                job.ApplyManagedUpdate(task.Status switch
+                {
+                    "RUNNING" => "running",
+                    "COMPLETED" => "completed",
+                    "CANCELLED" => "stopped",
+                    "FAILED" => "failed",
+                    _ => "running"
+                }, task.FailureReason);
+                job.Moved = task.ApproximateNumberOfMessagesMoved ?? 0;
+                if (task.ApproximateNumberOfMessagesToMove is > 0)
+                {
+                    job.Total = task.ApproximateNumberOfMessagesToMove.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh managed redrive status for job {JobId}", job.Id);
+        }
+
+        return new RedriveStatusDto
+        {
+            JobId = job.Id,
+            Mode = job.Mode,
+            Status = job.Status,
+            Moved = job.Moved,
+            Total = job.Total,
+            Failed = job.Failed,
+            Error = job.Error,
+            StartedAt = job.StartedAt,
+            FinishedAt = job.FinishedAt
+        };
+    }
+
+    public async Task StopRedriveAsync(Guid jobId, CancellationToken ct)
+    {
+        if (!_redriveJobs.TryGetValue(jobId, out var job))
+        {
+            throw new ArgumentException("Unknown redrive job.");
+        }
+
+        if (job.Mode == "manual")
+        {
+            job.Cts?.Cancel();
+            return;
+        }
+
+        try
+        {
+            var client = await GetClientAsync(ct);
+            await client.CancelMessageMoveTaskAsync(new CancelMessageMoveTaskRequest
+            {
+                TaskHandle = job.TaskHandle
+            }, ct);
+            _logger.LogInformation("Cancelled managed redrive task {TaskHandle}", job.TaskHandle);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to cancel managed redrive task {JobId}", job.Id);
+        }
+    }
+
+    private void PruneFinishedJobs()
+    {
+        var cutoff = DateTime.UtcNow.AddHours(-1);
+        foreach (var kv in _redriveJobs)
+        {
+            if (kv.Value.FinishedAt is { } finished && finished < cutoff)
+            {
+                _redriveJobs.TryRemove(kv.Key, out _);
+            }
+        }
+    }
+
+    private async Task RunManualRedriveAsync(RedriveJob job, CancellationToken ct)
+    {
+        try
+        {
+            var client = await GetClientAsync(ct);
+            var destAttrs = await GetQueueAttributesAsync(client, job.DestinationUrl, ct);
+            var destIsFifo = destAttrs.GetValueOrDefault("FifoQueue") == "true";
+            var limiter = job.MaxMessagesPerSecond > 0 ? new MessageRateLimiter(job.MaxMessagesPerSecond) : null;
+
+            while (!ct.IsCancellationRequested)
+            {
+                var resp = await client.ReceiveMessageAsync(new ReceiveMessageRequest
+                {
+                    QueueUrl = job.SourceUrl,
+                    MaxNumberOfMessages = 10,
+                    VisibilityTimeout = 30,
+                    WaitTimeSeconds = 0,
+                    MessageSystemAttributeNames = new List<string> { "All" },
+                    MessageAttributeNames = new List<string> { "All" }
+                }, ct);
+
+                var messages = resp.Messages ?? new List<Message>();
+                if (messages.Count == 0)
+                {
+                    job.Finish("completed");
+                    return;
+                }
+
+                foreach (var message in messages)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        job.Finish("stopped");
+                        return;
+                    }
+
+                    if (limiter is not null)
+                    {
+                        await limiter.WaitAsync(ct);
+                    }
+
+                    job.Scanned++;
+                    try
+                    {
+                        await SendRedrivenMessageAsync(client, job.DestinationUrl, message, destIsFifo, ct);
+                        await client.DeleteMessageAsync(new DeleteMessageRequest
+                        {
+                            QueueUrl = job.SourceUrl,
+                            ReceiptHandle = message.ReceiptHandle
+                        }, ct);
+                        job.Moved++;
+                        job.ConsecutiveFailures = 0;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        job.Failed++;
+                        job.ConsecutiveFailures++;
+                        _logger.LogWarning(ex, "Redrive: failed to move message {MessageId}", message.MessageId);
+                        if (job.ConsecutiveFailures >= 25)
+                        {
+                            job.Fail("Too many consecutive messages failed to move; redrive aborted.");
+                            return;
+                        }
+                    }
+                }
+            }
+
+            job.Finish("stopped");
+        }
+        catch (OperationCanceledException)
+        {
+            job.Finish("stopped");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Redrive job {JobId} failed", job.Id);
+            job.Fail(ex.Message);
+        }
+    }
+
+    private static async Task SendRedrivenMessageAsync(
+        AmazonSQSClient client, string destinationUrl, Message message, bool destIsFifo, CancellationToken ct)
+    {
+        var req = new SendMessageRequest
+        {
+            QueueUrl = destinationUrl,
+            MessageBody = message.Body
+        };
+
+        if (message.MessageAttributes is { Count: > 0 })
+        {
+            foreach (var (key, value) in message.MessageAttributes)
+            {
+                req.MessageAttributes[key] = value;
+            }
+        }
+
+        // Preserve FIFO ordering semantics: reuse the original group/dedup IDs when
+        // the message has them, otherwise synthesize stable ones from the message ID.
+        if (destIsFifo)
+        {
+            var groupId = message.Attributes.GetValueOrDefault("MessageGroupId");
+            var dedupId = message.Attributes.GetValueOrDefault("MessageDeduplicationId");
+            req.MessageGroupId = string.IsNullOrEmpty(groupId) ? "redrive" : groupId;
+            req.MessageDeduplicationId = string.IsNullOrEmpty(dedupId) ? $"redrive-{message.MessageId}" : dedupId;
+        }
+
+        await client.SendMessageAsync(req, ct);
+    }
+
+    /// <summary>A simple token-bucket rate limiter for the manual redrive path.</summary>
+    private sealed class MessageRateLimiter
+    {
+        private readonly int _maxPerSecond;
+        private readonly object _lock = new();
+        private double _tokens;
+        private DateTime _lastRefill = DateTime.UtcNow;
+
+        public MessageRateLimiter(int maxPerSecond)
+        {
+            _maxPerSecond = maxPerSecond;
+            _tokens = maxPerSecond;
+        }
+
+        public async Task WaitAsync(CancellationToken ct)
+        {
+            while (true)
+            {
+                lock (_lock)
+                {
+                    var now = DateTime.UtcNow;
+                    _tokens = Math.Min(_maxPerSecond, _tokens + (now - _lastRefill).TotalSeconds * _maxPerSecond);
+                    _lastRefill = now;
+                    if (_tokens >= 1)
+                    {
+                        _tokens -= 1;
+                        return;
+                    }
+                }
+
+                await Task.Delay(50, ct);
+            }
+        }
     }
 
     // ------------------------------------------------------------------- tags

@@ -103,3 +103,45 @@ public class UntagQueueRequestDto
     public string QueueUrl { get; set; } = "";
     public List<string> TagKeys { get; set; } = new();
 }
+
+/// <summary>Request body for starting a message redrive.</summary>
+public class StartRedriveRequestDto
+{
+    public string SourceQueueUrl { get; set; } = "";
+    public string DestinationQueueUrl { get; set; } = "";
+
+    /// <summary>0 = system optimized (as fast as possible); 1–500 = custom max messages per second.</summary>
+    public int MaxMessagesPerSecond { get; set; }
+}
+
+/// <summary>Request body for stopping a redrive job.</summary>
+public class RedriveStopRequestDto
+{
+    public Guid JobId { get; set; }
+}
+
+/// <summary>A started redrive job.</summary>
+public class RedriveJobDto
+{
+    public Guid JobId { get; set; }
+
+    /// <summary>"managed" = AWS message move task, "manual" = receive/send/delete fallback.</summary>
+    public string Mode { get; set; } = "";
+
+    /// <summary>Approximate number of messages to move (best-effort estimate).</summary>
+    public long Total { get; set; }
+}
+
+/// <summary>Snapshot of a redrive job's progress.</summary>
+public class RedriveStatusDto
+{
+    public Guid JobId { get; set; }
+    public string Status { get; set; } = "running"; // running | completed | stopped | failed
+    public string Mode { get; set; } = "";
+    public long Moved { get; set; }
+    public long Total { get; set; }
+    public long Failed { get; set; }
+    public string? Error { get; set; }
+    public DateTime StartedAt { get; set; }
+    public DateTime? FinishedAt { get; set; }
+}

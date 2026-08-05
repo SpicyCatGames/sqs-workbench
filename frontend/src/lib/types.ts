@@ -67,6 +67,31 @@ export interface ReceiveMessagesPayload {
   waitTimeSeconds?: number;
 }
 
+export interface StartRedrivePayload {
+  sourceQueueUrl: string;
+  destinationQueueUrl: string;
+  /** 0 = system optimized; 1–500 = custom max messages per second. */
+  maxMessagesPerSecond: number;
+}
+
+export interface RedriveJob {
+  jobId: string;
+  mode: 'managed' | 'manual';
+  total: number;
+}
+
+export interface RedriveStatus {
+  jobId: string;
+  status: 'running' | 'completed' | 'stopped' | 'failed';
+  mode: 'managed' | 'manual';
+  moved: number;
+  total: number;
+  failed: number;
+  error?: string | null;
+  startedAt: string;
+  finishedAt?: string | null;
+}
+
 export interface ApiErrorBody {
   error?: string;
   message?: string;

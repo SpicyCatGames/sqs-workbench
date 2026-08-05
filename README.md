@@ -23,6 +23,10 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
   - **Tags** — add, edit and remove tags.
   - **Send / Receive messages** — send with message attributes, delay, and FIFO group/deduplication IDs; receive with
     polling controls, inspect system/message attributes, and delete (acknowledge) messages.
+  - **Start redrive** — move every message out of a dead-letter queue back to its **source queue** (detected automatically)
+    or to a **custom destination**, with a velocity control (**system optimized** or a custom cap of up to 500 messages
+    per second) and a live progress view that can be stopped mid-run. Uses the managed SQS message move task API when the
+    endpoint supports it, and falls back to an emulator-compatible receive/send/delete loop otherwise.
 - **Settings** — the gear icon opens connection settings (AWS endpoint URL, region, access key, secret access key)
   with a **test connection** button. Settings are persisted server-side and take effect immediately.
 
@@ -96,6 +100,10 @@ For local emulators any credentials work (e.g. `test` / `test`); for AWS use a r
 | POST | `/api/queues/delete-message` | Delete (acknowledge) a message |
 | GET / PUT | `/api/queues/tags?url=` | List / set tags |
 | POST | `/api/queues/untag` | Remove tags |
+| GET | `/api/queues/redrive/sources?url=` | Queues using this queue as their dead-letter queue |
+| POST | `/api/queues/redrive` | Start a redrive (destination + velocity); returns a job id |
+| GET | `/api/queues/redrive/status?jobId=` | Poll redrive progress |
+| POST | `/api/queues/redrive/stop` | Stop a running redrive |
 | GET | `/api/health` | Liveness probe |
 
 ## Project layout

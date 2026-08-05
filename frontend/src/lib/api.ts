@@ -3,9 +3,12 @@ import type {
   QueueItem,
   ReceiveMessagesPayload,
   ReceivedMessage,
+  RedriveJob,
+  RedriveStatus,
   SendMessagePayload,
   SendMessageResult,
   SqsSettings,
+  StartRedrivePayload,
   UpdateSettingsPayload,
 } from './types';
 
@@ -92,4 +95,10 @@ export const api = {
     request<{ ok: boolean }>('/queues/tags', { method: 'PUT', body: JSON.stringify({ queueUrl, tags }) }),
   untag: (queueUrl: string, tagKeys: string[]) =>
     request<{ ok: boolean }>('/queues/untag', { method: 'POST', body: JSON.stringify({ queueUrl, tagKeys }) }),
+
+  // redrive
+  getRedriveSources: (url: string) => request<{ sources: QueueItem[] }>(`/queues/redrive/sources${qs({ url })}`),
+  startRedrive: (payload: StartRedrivePayload) => request<RedriveJob>('/queues/redrive', { method: 'POST', body: JSON.stringify(payload) }),
+  getRedriveStatus: (jobId: string) => request<RedriveStatus>(`/queues/redrive/status${qs({ jobId })}`),
+  stopRedrive: (jobId: string) => request<{ ok: boolean }>('/queues/redrive/stop', { method: 'POST', body: JSON.stringify({ jobId }) }),
 };

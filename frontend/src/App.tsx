@@ -5,6 +5,7 @@ import { TopBar } from './components/TopBar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { QueuesPage } from './pages/QueuesPage';
 import { QueueDetailPage } from './pages/QueueDetailPage';
+import { RedrivePage } from './pages/RedrivePage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<QueuesPage />} />
           <Route path="/queues/:name" element={<QueueDetailPage />} />
+          <Route path="/queues/:name/redrive" element={<RedrivePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

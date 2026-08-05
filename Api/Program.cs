@@ -168,6 +168,23 @@ api.MapPost("/queues/untag", async (SqsService sqs, UntagQueueRequestDto dto, Ca
     return Results.Ok(new { ok = true });
 });
 
+// ---- redrive --------------------------------------------------------------
+
+api.MapGet("/queues/redrive/sources", async (SqsService sqs, string url, CancellationToken ct) =>
+    Results.Ok(new { sources = await sqs.ListRedriveSourceQueuesAsync(url, ct) }));
+
+api.MapPost("/queues/redrive", async (SqsService sqs, StartRedriveRequestDto dto, CancellationToken ct) =>
+    Results.Ok(await sqs.StartRedriveAsync(dto, ct)));
+
+api.MapGet("/queues/redrive/status", async (SqsService sqs, Guid jobId, CancellationToken ct) =>
+    Results.Ok(await sqs.GetRedriveStatusAsync(jobId, ct)));
+
+api.MapPost("/queues/redrive/stop", async (SqsService sqs, RedriveStopRequestDto dto, CancellationToken ct) =>
+{
+    await sqs.StopRedriveAsync(dto.JobId, ct);
+    return Results.Ok(new { ok = true });
+});
+
 // ---- health ---------------------------------------------------------------
 
 api.MapGet("/health", () => Results.Ok(new { status = "ok" }));
