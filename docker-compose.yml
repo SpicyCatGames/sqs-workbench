@@ -1,19 +1,25 @@
 services:
-  # Local SQS emulator (floci is a LocalStack-compatible drop-in)
+  # Local SQS emulator (floci is a LocalStack-compatible drop-in on port 4566)
   sqs:
     image: floci/floci:latest
     ports:
       - "4566:4566"
 
-  # The SQS Workbench web app (serves the SPA at http://localhost:5072)
-  api:
-    build: .
+  # Optional CORS bridge for the browser-only workbench. Needed only by
+  # emulators that don't send CORS headers themselves (stock floci, ElasticMQ).
+  # Point the workbench's "AWS endpoint URL" setting at http://localhost:4567.
+  # If your emulator already sends CORS headers (e.g. LocalStack, or floci
+  # started with its CORS origins configured), this service is not required.
+  cors-proxy:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - ./scripts:/app
+    command: node cors-proxy.mjs
     ports:
-      - "5072:8080"
+      - "4567:4567"
     environment:
-      AWS_ENDPOINT_URL: http://sqs:4566
-      AWS_DEFAULT_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
+      TARGET: http://sqs:4566
+      PORT: "4567"
     depends_on:
       - sqs

@@ -1,13 +1,16 @@
 # SQS Workbench
 
-A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/) queues - on local emulators
-([floci](https://hub.docker.com/r/floci/floci), LocalStack, ElasticMQ) or real AWS.
+A **browser-only** web console for managing [Amazon SQS](https://aws.amazon.com/sqs/) queues — on local emulators
+([floci](https://hub.docker.com/r/floci/floci), LocalStack, ElasticMQ) or real AWS. There is no backend: the app talks
+to the SQS HTTP API directly from your browser (SigV4 signing happens in-browser via the Web Crypto API), so it can be
+hosted as plain static files anywhere.
 
-![stack](https://img.shields.io/badge/.NET-10-512BD4) ![stack](https://img.shields.io/badge/React-19-61DAFB) ![stack](https://img.shields.io/badge/AWS%20SDK%20for%20.NET-v4-FF9900)
+![stack](https://img.shields.io/badge/React-19-61DAFB) ![stack](https://img.shields.io/badge/Vite-6-646CFF) ![stack](https://img.shields.io/badge/AWS%20SDK%20for%20JS-v3-FF9900)
 
 ## Screenshots
 
 | <a href="screenshots/screenshot_queues.png"><img src="screenshots/screenshot_queues.png" alt="Queues page" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> | <a href="screenshots/screenshot_createqueue.png"><img src="screenshots/screenshot_createqueue.png" alt="Create queue dialog" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> | <a href="screenshots/screenshot_queuedetails.png"><img src="screenshots/screenshot_queuedetails.png" alt="Queue details console" width="240" height="240" style="object-fit: fill; border-radius: 8px;"></a> |
+| --- | --- | --- |
 
 ## Features
 
@@ -26,93 +29,83 @@ A self-hosted web console for managing [Amazon SQS](https://aws.amazon.com/sqs/)
   - **Start redrive** — move every message out of a dead-letter queue back to its **source queue** (detected automatically)
     or to a **custom destination**, with a velocity control (**system optimized** or a custom cap of up to 500 messages
     per second) and a live progress view that can be stopped mid-run. Uses the managed SQS message move task API when the
-    endpoint supports it, and falls back to an emulator-compatible receive/send/delete loop otherwise.
+    endpoint supports it, and otherwise runs the receive/send/delete loop **in your browser**.
 - **Settings** — the gear icon opens connection settings (AWS endpoint URL, region, access key, secret access key)
-  with a **test connection** button. Settings are persisted server-side and take effect immediately.
+  with a **test connection** button. Settings are stored in the browser (localStorage) and take effect immediately.
 
-## Quick start (from dockerhub)
-
-```bash
-docker run -d -p 5072:8080  spicycatgames/sqs-workbench:latest
-```
-Open <http://localhost:5072>.
-In the top right corner, from the settings button, you can set the credentials.
-If you're on windows, and emulator is running on another container, endpoint should be `host.docker.internal` instead of `localhost`.
-
-## Quick start (with the floci emulator)
+## Hosting: the app is 100% static
 
 ```bash
-# one-command stack: floci (SQS) + the sqs workbench app on http://localhost:5072
-docker compose up --build
+cd frontend
+npm install
+npm run build      # outputs plain static files to frontend/dist
 ```
 
-Open <http://localhost:5072>.
+`dist/` contains everything — host it on GitHub Pages, Cloudflare Pages, Netlify, S3, or any static file server. The app
+uses hash-based routing, so deep links and refreshes work on any static host without rewrite rules.
 
-## Run locally without Docker
-
-Prerequisites: .NET 10 SDK, Node.js 20+.
+## Run locally against your emulator
 
 ```bash
 # 1. Start an SQS emulator (optional) — e.g. floci
 docker run -p 4566:4566 floci/floci:latest
 
-# 2. Build the frontend into Api/wwwroot (only needed once / after UI changes)
-cd frontend && npm install && npm run build && cd ..
-
-# 3. Run the API (serves the SPA + the REST API)
-cd Api && dotnet run
+# 2. Run the workbench (dev server on http://localhost:3000)
+cd frontend && npm install && npm run dev
 ```
 
-Open <http://localhost:5072>.
+Open <http://localhost:3000>. In the top right corner, open **Settings** and set the endpoint of your emulator
+(e.g. `http://localhost:4566`, credentials `test` / `test`) and hit **Test connection**.
 
-### Frontend development (hot reload)
+## CORS — the one thing that matters when hosting
+
+Browsers only let a page read responses from an endpoint that sends CORS headers for the page's origin. So the SQS
+endpoint you point the app at must allow requests from wherever the app is hosted.
+
+| Endpoint | CORS status |
+| --- | --- |
+| **LocalStack** | ✅ Sends CORS headers out of the box |
+| **floci** | ⚠️ Only if started with your app origin allowed (see your emulator's docs) |
+| **ElasticMQ** | ❌ No CORS support — use the bundled CORS bridge |
+| **Real AWS** | ✅ Yes (SQS supports CORS) |
+
+**Bundled CORS bridge** — for emulators that don't send CORS headers (stock floci, ElasticMQ), run the tiny proxy and
+point the workbench at it instead:
 
 ```bash
-cd frontend && npm run dev
+TARGET=http://localhost:4566 PORT=4567 node scripts/cors-proxy.mjs
+# then set the workbench endpoint to http://localhost:4567
 ```
 
-Vite dev server runs on <http://localhost:5173> and proxies `/api` to the .NET API on `http://localhost:5072`.
+The same bridge is available as the `cors-proxy` service in `docker-compose.yml` (see below).
 
-## Configuration
+**Mixed content note** — if the workbench is hosted over HTTPS, browsers still allow it to fetch `http://localhost`
+and `http://127.0.0.1` (loopback is exempt from mixed-content blocking), but **not** `http://192.168.x.x` LAN addresses.
+Use `localhost` for your emulator endpoint.
 
-Connection settings are resolved in this order (first wins):
+## docker-compose (emulator + optional CORS bridge)
 
-1. Settings saved through the UI (stored in `Api/App_Data/settings.json` — never commit this file)
-2. Environment variables: `AWS_ENDPOINT_URL`, `AWS_DEFAULT_REGION`/`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-3. Defaults in `Api/appsettings.json` (`SqsSettings` section)
+```bash
+docker compose up -d
+# sqs on http://localhost:4566, cors bridge on http://localhost:4567
+```
 
-For local emulators any credentials work (e.g. `test` / `test`); for AWS use a real key pair with SQS permissions.
+The `cors-proxy` service is optional — skip it if your emulator already sends CORS headers.
 
-## REST API
+## Security notes
 
-| Method | Path | Description |
-| --- | --- | --- |
-| GET / PUT | `/api/settings` | Read / update connection settings |
-| POST | `/api/settings/test` | Verify the connection (lists queues) |
-| GET | `/api/queues?prefix=` | List queues with attributes |
-| GET | `/api/queues/detail?name=` | Queue detail (URL, ARN, attributes) |
-| POST | `/api/queues` | Create queue (Standard or FIFO) |
-| DELETE | `/api/queues?url=` | Delete queue |
-| POST | `/api/queues/purge` | Purge queue |
-| GET / PUT | `/api/queues/attributes?url=` | Get / set queue attributes (visibility, redrive policy, policy, ...) |
-| POST | `/api/queues/send-message` | Send a message |
-| POST | `/api/queues/receive` | Receive messages |
-| POST | `/api/queues/delete-message` | Delete (acknowledge) a message |
-| GET / PUT | `/api/queues/tags?url=` | List / set tags |
-| POST | `/api/queues/untag` | Remove tags |
-| GET | `/api/queues/redrive/sources?url=` | Queues using this queue as their dead-letter queue |
-| POST | `/api/queues/redrive` | Start a redrive (destination + velocity); returns a job id |
-| GET | `/api/queues/redrive/status?jobId=` | Poll redrive progress |
-| POST | `/api/queues/redrive/stop` | Stop a running redrive |
-| GET | `/api/health` | Liveness probe |
+- Connection settings (including the secret key, if any) are stored in **your browser's localStorage** on the machine
+  you use the app from.
+- Local emulators accept any credentials (e.g. `test` / `test`); for AWS use a real key pair with SQS permissions.
+- Do **not** enter real AWS keys on a shared/public instance of the hosted app — they would be stored in that browser
+  and are visible to anyone who uses that machine.
 
 ## Project layout
 
 ```
-Api/                 ASP.NET Core Web API (endpoints, SQS service, settings store)
-Api/wwwroot/         Built SPA (static files served by the API)
-frontend/            React + TypeScript + Vite source
-Dockerfile           Multi-stage build (Node → .NET publish → runtime)
-docker-compose.yml   floci + sqs workbench app for local testing
-.github/workflows/   Docker Hub publish pipeline
+frontend/                 React + TypeScript + Vite app (the entire product)
+frontend/dist/            Static build output — host this anywhere
+scripts/cors-proxy.mjs    Optional CORS bridge for emulators without CORS support
+docker-compose.yml        floci emulator + optional CORS bridge for local testing
+screenshots/              README screenshots
 ```
