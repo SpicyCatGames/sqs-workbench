@@ -13,8 +13,8 @@ export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
             <Boxes size={16} />
           </span>
           <span>
-            <div className="topbar-title">SQS Workbench</div>
-            <div className="topbar-subtitle">Queue management console</div>
+            <div className="topbar-title">AWS Workbench</div>
+            <div className="topbar-subtitle">AWS service consoles</div>
           </span>
         </Link>
       </div>

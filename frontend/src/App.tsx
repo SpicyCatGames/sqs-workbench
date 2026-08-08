@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { TopBar } from './components/TopBar';
+import { Sidebar } from './components/Sidebar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { QueuesPage } from './pages/QueuesPage';
 import { QueueDetailPage } from './pages/QueueDetailPage';
 import { RedrivePage } from './pages/RedrivePage';
+import { TopicsPage } from './pages/sns/TopicsPage';
+import { CreateTopicPage } from './pages/sns/CreateTopicPage';
+import { TopicDetailPage } from './pages/sns/TopicDetailPage';
+import { SubscriptionsPage } from './pages/sns/SubscriptionsPage';
+import { SmsPage } from './pages/sns/SmsPage';
+import { OriginationNumbersPage } from './pages/sns/OriginationNumbersPage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -20,16 +27,25 @@ export default function App() {
   }, [reloadSettings]);
 
   return (
-    <>
-      <TopBar onOpenSettings={() => setSettingsOpen(true)} />
-      <main>
-        <Routes>
-          <Route path="/" element={<QueuesPage />} />
-          <Route path="/queues/:name" element={<QueueDetailPage />} />
-          <Route path="/queues/:name/redrive" element={<RedrivePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+    <div className="app-shell">
+      <Sidebar />
+      <div className="app-main">
+        <TopBar onOpenSettings={() => setSettingsOpen(true)} />
+        <main className="app-content">
+          <Routes>
+            <Route path="/" element={<QueuesPage />} />
+            <Route path="/queues/:name" element={<QueueDetailPage />} />
+            <Route path="/queues/:name/redrive" element={<RedrivePage />} />
+            <Route path="/sns" element={<TopicsPage />} />
+            <Route path="/sns/create" element={<CreateTopicPage />} />
+            <Route path="/sns/topics/:arn" element={<TopicDetailPage />} />
+            <Route path="/sns/subscriptions" element={<SubscriptionsPage />} />
+            <Route path="/sns/mobile/text-messaging" element={<SmsPage />} />
+            <Route path="/sns/mobile/origination-numbers" element={<OriginationNumbersPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
@@ -46,6 +62,6 @@ export default function App() {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }

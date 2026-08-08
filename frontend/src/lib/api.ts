@@ -23,6 +23,7 @@ import {
   type SendMessageCommandInput,
 } from '@aws-sdk/client-sqs';
 import { queueNameFromUrl } from './format';
+import { loadSettings, storeSettings, type StoredSettings } from './settingsStore';
 import type {
   CreateQueuePayload,
   QueueItem,
@@ -46,45 +47,6 @@ export class ApiRequestError extends Error {
     this.name = 'ApiRequestError';
     this.code = code;
     this.status = status;
-  }
-}
-
-// ------------------------------------------------------------ settings (local)
-
-const SETTINGS_KEY = 'sqs-workbench:settings';
-
-interface StoredSettings {
-  endpoint: string;
-  region: string;
-  accessKey: string;
-  secretKey: string;
-}
-
-const DEFAULT_SETTINGS: StoredSettings = {
-  endpoint: 'http://localhost:4566',
-  region: 'us-east-1',
-  accessKey: 'test',
-  secretKey: 'test',
-};
-
-function loadSettings(): StoredSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<StoredSettings>;
-      return { ...DEFAULT_SETTINGS, ...parsed };
-    }
-  } catch {
-    /* corrupted storage — fall back to defaults */
-  }
-  return { ...DEFAULT_SETTINGS };
-}
-
-function storeSettings(s: StoredSettings): void {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-  } catch {
-    /* private browsing etc. — settings just won't persist */
   }
 }
 
@@ -129,12 +91,12 @@ function isServiceError(err: unknown): boolean {
   return !!err && typeof err === 'object' && '$metadata' in err;
 }
 
-function toApiError(err: unknown): ApiRequestError {
+export function toApiError(err: unknown): ApiRequestError {
   if (err instanceof ApiRequestError) return err;
   if (isServiceError(err)) {
     const e = err as SdkErrorLike;
     return new ApiRequestError(
-      e.message ?? 'The SQS endpoint returned an error.',
+      e.message ?? 'The endpoint returned an error.',
       e.Code ?? e.name ?? 'AwsError',
       e.$metadata?.httpStatusCode ?? 502,
     );
@@ -142,7 +104,7 @@ function toApiError(err: unknown): ApiRequestError {
   if (err instanceof Error) {
     // SDK fetch failures in the browser surface as generic errors.
     return new ApiRequestError(
-      'Cannot reach the SQS endpoint. Check your connection settings and that the endpoint allows cross-origin (CORS) requests.',
+      'Cannot reach the configured endpoint. Check your connection settings and that the endpoint allows cross-origin (CORS) requests.',
       'NetworkError',
       502,
     );

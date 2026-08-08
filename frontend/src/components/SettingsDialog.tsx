@@ -82,7 +82,7 @@ export function SettingsDialog({ open, onClose }: Props) {
     <Modal
       open={open}
       title="Settings"
-      subtitle="Connection details for the SQS endpoint this console manages."
+      subtitle="Connection details for the AWS endpoint this console manages (shared by SQS, SNS and future services)."
       onClose={onClose}
       footer={
         <>
