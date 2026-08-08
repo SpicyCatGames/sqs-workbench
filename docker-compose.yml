@@ -1,15 +1,21 @@
 services:
-  # Local SQS emulator (floci is a LocalStack-compatible drop-in on port 4566)
+  # Local SQS/SNS emulator (floci is a LocalStack-compatible drop-in on port 4566)
   sqs:
     image: floci/floci:latest
     ports:
       - "4566:4566"
+    environment:
+      # Allow the browser-only workbench (dev server on :3000, static build on
+      # :8080) to call the emulator directly from the browser. Add the origin
+      # of any other host that serves the static build (comma-separated).
+      FLOCI_SECURITY_EXTRA_CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8080
 
-  # Optional CORS bridge for the browser-only workbench. Needed only by
-  # emulators that don't send CORS headers themselves (stock floci, ElasticMQ).
-  # Point the workbench's "AWS endpoint URL" setting at http://localhost:4567.
-  # If your emulator already sends CORS headers (e.g. LocalStack, or floci
-  # started with its CORS origins configured), this service is not required.
+  # Optional CORS bridge for the browser-only workbench. Needed only when the
+  # emulator doesn't send CORS headers for your app's origin (e.g. you serve the
+  # static build from an origin not in FLOCI_SECURITY_EXTRA_CORS_ALLOWED_ORIGINS
+  # above, or use ElasticMQ). Point the workbench's "AWS endpoint URL" setting
+  # at http://localhost:4567. If your emulator already allows your origin, this
+  # service is not required.
   cors-proxy:
     image: node:24-alpine
     working_dir: /app
