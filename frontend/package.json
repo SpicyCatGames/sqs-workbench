@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1106.0",
     "@aws-sdk/client-sns": "^3.1106.0",
     "@aws-sdk/client-sqs": "^3.1105.0",
+    "@aws-sdk/lib-storage": "^3.1106.0",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

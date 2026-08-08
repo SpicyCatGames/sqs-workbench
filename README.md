@@ -1,8 +1,12 @@
 # AWS Workbench
 
-A **browser-only** web console for managing AWS services (SQS queues, SNS topics, subscriptions and SMS) on local
+A **browser-only** web console for managing AWS services (SQS queues, SNS topics, subscriptions, SMS and S3 buckets) on local
 emulators or real AWS. There is no backend: the app talks to the AWS HTTP APIs directly from your browser, so it can
 be hosted as plain static files anywhere.
+
+The S3 console covers the full object workflow: bucket CRUD, folder navigation, uploads with progress (multipart for
+large files), downloads, copy/rename, delete (single and batch), object preview, object tags and ACLs, object
+versioning, bucket properties (versioning, encryption, tags) and permissions (access policy, CORS, block public access).
 
 ## Build
 

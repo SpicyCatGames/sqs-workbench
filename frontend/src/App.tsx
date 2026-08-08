@@ -13,6 +13,8 @@ import { TopicDetailPage } from './pages/sns/TopicDetailPage';
 import { SubscriptionsPage } from './pages/sns/SubscriptionsPage';
 import { SmsPage } from './pages/sns/SmsPage';
 import { OriginationNumbersPage } from './pages/sns/OriginationNumbersPage';
+import { BucketsPage } from './pages/s3/BucketsPage';
+import { BucketDetailPage } from './pages/s3/BucketDetailPage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/sns/subscriptions" element={<SubscriptionsPage />} />
             <Route path="/sns/mobile/text-messaging" element={<SmsPage />} />
             <Route path="/sns/mobile/origination-numbers" element={<OriginationNumbersPage />} />
+            <Route path="/s3" element={<BucketsPage />} />
+            <Route path="/s3/buckets/:name" element={<BucketDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
