@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Boxes, ChevronRight, HardDrive, Megaphone, PanelLeftClose, PanelLeftOpen, Smartphone } from 'lucide-react';
+import { Boxes, ChevronRight, Database, HardDrive, Megaphone, PanelLeftClose, PanelLeftOpen, Smartphone } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 const COLLAPSE_KEY = 'sqs-workbench:sidebar-collapsed';
@@ -44,6 +44,12 @@ const NAV: NavItem[] = [
     path: '/s3',
     icon: <HardDrive size={17} />,
     children: [{ label: 'Buckets', path: '/s3' }],
+  },
+  {
+    label: 'DynamoDB',
+    path: '/dynamo',
+    icon: <Database size={17} />,
+    children: [{ label: 'Tables', path: '/dynamo' }],
   },
 ];
 

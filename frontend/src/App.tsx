@@ -15,6 +15,8 @@ import { SmsPage } from './pages/sns/SmsPage';
 import { OriginationNumbersPage } from './pages/sns/OriginationNumbersPage';
 import { BucketsPage } from './pages/s3/BucketsPage';
 import { BucketDetailPage } from './pages/s3/BucketDetailPage';
+import { TablesPage } from './pages/dynamo/TablesPage';
+import { TableDetailPage } from './pages/dynamo/TableDetailPage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -46,6 +48,8 @@ export default function App() {
             <Route path="/sns/mobile/origination-numbers" element={<OriginationNumbersPage />} />
             <Route path="/s3" element={<BucketsPage />} />
             <Route path="/s3/buckets/:name" element={<BucketDetailPage />} />
+            <Route path="/dynamo" element={<TablesPage />} />
+            <Route path="/dynamo/tables/:name" element={<TableDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
