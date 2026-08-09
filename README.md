@@ -1,12 +1,17 @@
 # AWS Workbench
 
-A **browser-only** web console for managing AWS services (SQS queues, SNS topics, subscriptions, SMS and S3 buckets) on local
-emulators or real AWS. There is no backend: the app talks to the AWS HTTP APIs directly from your browser, so it can
-be hosted as plain static files anywhere.
+A **browser-only** web console for managing AWS services (SQS queues, SNS topics, subscriptions, SMS, S3 buckets,
+DynamoDB tables, Secrets Manager and Lambda functions) on local emulators or real AWS. There is no backend: the app
+talks to the AWS HTTP APIs directly from your browser, so it can be hosted as plain static files anywhere.
 
 The S3 console covers the full object workflow: bucket CRUD, folder navigation, uploads with progress (multipart for
 large files), downloads, copy/rename, delete (single and batch), object preview, object tags and ACLs, object
 versioning, bucket properties (versioning, encryption, tags) and permissions (access policy, CORS, block public access).
+
+The Lambda console covers the function lifecycle: create functions from inline code (packaged to a .zip in the
+browser), uploaded .zip files or S3 packages, deploy code updates, invoke tests with JSON events (RequestResponse /
+Event / DryRun), edit configuration and environment variables, manage event source mappings, resource-based
+permissions, published versions and aliases, and tags.
 
 ## Build
 

@@ -20,6 +20,9 @@ import { TableDetailPage } from './pages/dynamo/TableDetailPage';
 import { SecretsPage } from './pages/secrets/SecretsPage';
 import { CreateSecretPage } from './pages/secrets/CreateSecretPage';
 import { SecretDetailPage } from './pages/secrets/SecretDetailPage';
+import { FunctionsPage } from './pages/lambda/FunctionsPage';
+import { CreateFunctionPage } from './pages/lambda/CreateFunctionPage';
+import { FunctionDetailPage } from './pages/lambda/FunctionDetailPage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -56,6 +59,9 @@ export default function App() {
             <Route path="/secrets" element={<SecretsPage />} />
             <Route path="/secrets/create" element={<CreateSecretPage />} />
             <Route path="/secrets/secret/:name" element={<SecretDetailPage />} />
+            <Route path="/lambda" element={<FunctionsPage />} />
+            <Route path="/lambda/create" element={<CreateFunctionPage />} />
+            <Route path="/lambda/functions/:name" element={<FunctionDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
