@@ -17,6 +17,9 @@ import { BucketsPage } from './pages/s3/BucketsPage';
 import { BucketDetailPage } from './pages/s3/BucketDetailPage';
 import { TablesPage } from './pages/dynamo/TablesPage';
 import { TableDetailPage } from './pages/dynamo/TableDetailPage';
+import { SecretsPage } from './pages/secrets/SecretsPage';
+import { CreateSecretPage } from './pages/secrets/CreateSecretPage';
+import { SecretDetailPage } from './pages/secrets/SecretDetailPage';
 import { useSettings, useToast } from './lib/context';
 
 export default function App() {
@@ -50,6 +53,9 @@ export default function App() {
             <Route path="/s3/buckets/:name" element={<BucketDetailPage />} />
             <Route path="/dynamo" element={<TablesPage />} />
             <Route path="/dynamo/tables/:name" element={<TableDetailPage />} />
+            <Route path="/secrets" element={<SecretsPage />} />
+            <Route path="/secrets/create" element={<CreateSecretPage />} />
+            <Route path="/secrets/secret/:name" element={<SecretDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

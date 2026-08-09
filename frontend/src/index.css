@@ -1447,6 +1447,86 @@ table.data-table {
   border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/* ===================================================== Secrets Manager */
+/* store-new-secret wizard stepper */
+.sm-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.sm-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sm-step + .sm-step::before {
+  content: '';
+  width: 28px;
+  height: 2px;
+  margin-right: 4px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.sm-step-done + .sm-step::before {
+  background: var(--accent);
+}
+
+.sm-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.sm-step-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.sm-step-active .sm-step-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.sm-step-active .sm-step-label {
+  color: var(--text);
+}
+
+.sm-step-done .sm-step-dot {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sm-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 /* ======================================================== SNS shared */
 .sns-section {
   margin-bottom: 16px;
