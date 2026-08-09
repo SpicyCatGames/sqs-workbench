@@ -61,6 +61,26 @@ kill $(netstat -ano | grep 8080 | awk '{print $5}')  # or on Windows: taskkill /
 Any other static file server works too (e.g. `npx serve dist`), since the build uses relative asset paths and hash
 routing.
 
+## Using fakecloud (or any emulator without CORS support)
+
+Emulators that don't send CORS headers (e.g. **fakecloud**) can't be called directly from the browser — the browser blocks the response even though the emulator works fine from the CLI. Point the app at one of the built-in proxies instead:
+
+**Option 1 — Vite dev server (recommended for development)**
+
+1. Start fakecloud on `http://localhost:4566`.
+2. Run the dev server: `cd frontend && npm run dev`.
+3. In the app's **Settings**, set the "AWS endpoint URL" to `http://localhost:3000/aws`.
+
+The dev server forwards `/aws/*` to the emulator and adds the CORS headers the browser needs. If your emulator isn't on port 4566, set `FAKECLOUD_ENDPOINT` before starting the dev server (e.g. `FAKECLOUD_ENDPOINT=http://localhost:5000 npm run dev`).
+
+**Option 2 — Standalone CORS bridge (works with the static build too)**
+
+1. Start fakecloud on `http://localhost:4566`.
+2. Run the bridge: `cd frontend && npm run cors-proxy` (forwards `http://localhost:4567` → `http://localhost:4566`).
+3. In the app's **Settings**, set the "AWS endpoint URL" to `http://localhost:4567`.
+
+Customize the bridge with `TARGET` / `PORT` env vars: `TARGET=http://localhost:5000 PORT=4567 node scripts/cors-proxy.mjs`.
+
 ## Development
 
 ```bash
@@ -69,6 +89,8 @@ npm install
 npm run dev
 # dev server on http://localhost:3000 with hot reload
 ```
+
+If your emulator doesn't support CORS (e.g. fakecloud), the dev server proxies `/aws/*` to it — see [Using fakecloud](#using-fakecloud-or-any-emulator-without-cors-support).
 
 ## Project layout
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Tiny CORS bridge for SQS emulators that don't send CORS headers themselves
- * (stock floci, ElasticMQ). Browsers require `Access-Control-Allow-*` response
- * headers before they will let a hosted page talk to a local emulator.
+ * Tiny CORS bridge for AWS emulators that don't send CORS headers themselves
+ * (fakecloud, stock floci, ElasticMQ). Browsers require `Access-Control-Allow-*`
+ * response headers before they will let a hosted page talk to a local emulator.
  *
  * Usage:
  *   TARGET=http://localhost:4566 PORT=4567 node cors-proxy.mjs
@@ -17,22 +17,18 @@ const TARGET = (process.env.TARGET ?? 'http://localhost:4566').replace(/\/+$/, '
 const PORT = Number(process.env.PORT ?? 4567);
 const TIMEOUT_MS = 35_000;
 
-const ALLOW_HEADERS = [
-  'authorization',
-  'content-type',
-  'date',
-  'host',
-  'x-amz-content-sha256',
-  'x-amz-date',
-  'x-amz-security-token',
-  'x-amz-target',
-  'x-amz-user-agent',
-].join(', ');
+// The AWS SDK v3 sends amz-sdk-* and x-amz-* request headers that vary between
+// services and SDK versions. Allow any header — this is a localhost-only
+// bridge, so the wildcard is safe and future-proof.
+const ALLOW_HEADERS = '*';
 
 createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', ALLOW_HEADERS);
+  // Expose AWS response headers (x-amz-meta-*, x-amz-version-id, ...) so the
+  // SDK can read them through the bridge.
+  res.setHeader('Access-Control-Expose-Headers', '*');
   res.setHeader('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {

@@ -111,7 +111,10 @@ export function SettingsDialog({ open, onClose }: Props) {
         </div>
       )}
 
-      <Field label="AWS endpoint URL" hint="For example http://localhost:4566 (floci / LocalStack / ElasticMQ) or https://sqs.us-east-1.amazonaws.com">
+      <Field
+        label="AWS endpoint URL"
+        hint={'For example http://localhost:4566 (floci / LocalStack) or https://sqs.us-east-1.amazonaws.com. Emulator without CORS (fakecloud)? Use http://localhost:3000/aws with "npm run dev", or http://localhost:4567 via "npm run cors-proxy".'}
+      >
         <TextInput value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="http://localhost:4566" spellCheck={false} />
       </Field>
 

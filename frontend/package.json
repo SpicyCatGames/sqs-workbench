@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cors-proxy": "node ../scripts/cors-proxy.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1106.0",
