@@ -44,6 +44,20 @@ PORT=8080 node scripts/serve-static.mjs
 Open the printed URL, then click the **Settings** gear in the top right and point the app at your AWS endpoint
 (default: `http://localhost:4566`).
 
+### Stopping / restarting the server
+
+The server runs in the foreground, so press **`Ctrl+C`** in the terminal where it's running to stop it. Run the
+`node scripts/serve-static.mjs` command again to restart it.
+
+If the terminal is gone and the server is still running, kill it by port instead (bash on Windows):
+
+```bash
+netstat -ano | grep 8080          # find the PID listening on 8080
+kill $(netstat -ano | grep 8080 | awk '{print $5}')  # or on Windows: taskkill //PID <pid> //F
+```
+
+> Note: the server does not watch the build directory — after rebuilding, restart it to pick up the new assets.
+
 Any other static file server works too (e.g. `npx serve dist`), since the build uses relative asset paths and hash
 routing.
 
